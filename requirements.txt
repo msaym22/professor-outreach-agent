@@ -1,0 +1,9 @@
+openrouter
+python-dotenv
+requests
+urllib3
+composio-core
+openai
+rapidfuzz
+tenacity
+httpx

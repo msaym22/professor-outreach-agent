@@ -1,0 +1,23 @@
+# Secrets
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Database (contains sent email history — keep locally only)
+state.db
+*.db
+
+# Logs
+logs/
+
+# Virtual environment
+venv/
+
+# CV (personal document)
+assets/*.docx
+assets/*.pdf
+assets/*.doc
