@@ -1,0 +1,96 @@
+name: Daily Professor Outreach
+
+on:
+  # 09:00 Pakistan Standard Time (UTC+5) = 04:00 UTC
+  schedule:
+    - cron: "0 4 * * *"
+  # Manual "Run workflow" button in GitHub
+  workflow_dispatch:
+
+jobs:
+  outreach:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Restore SQLite agent state
+        uses: actions/cache/restore@v4
+        with:
+          path: state.db
+          key: prof-agent-state-${{ github.run_id }}
+          restore-keys: |
+            prof-agent-state-
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create .env from GitHub Secrets
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+          SERPAPI_KEY_1: ${{ secrets.SERPAPI_KEY_1 }}
+          SERPAPI_KEY_2: ${{ secrets.SERPAPI_KEY_2 }}
+          SERPAPI_KEY_3: ${{ secrets.SERPAPI_KEY_3 }}
+          HUNTER_API_KEY_1: ${{ secrets.HUNTER_API_KEY_1 }}
+          HUNTER_API_KEY_2: ${{ secrets.HUNTER_API_KEY_2 }}
+          HUNTER_API_KEY_3: ${{ secrets.HUNTER_API_KEY_3 }}
+          SNOV_CLIENT_ID_1: ${{ secrets.SNOV_CLIENT_ID_1 }}
+          SNOV_SECRET_1: ${{ secrets.SNOV_SECRET_1 }}
+          SNOV_CLIENT_ID_2: ${{ secrets.SNOV_CLIENT_ID_2 }}
+          SNOV_SECRET_2: ${{ secrets.SNOV_SECRET_2 }}
+          SNOV_CLIENT_ID_3: ${{ secrets.SNOV_CLIENT_ID_3 }}
+          SNOV_SECRET_3: ${{ secrets.SNOV_SECRET_3 }}
+        run: |
+          if [ -z "$OPENROUTER_API_KEY" ] || [ -z "$COMPOSIO_API_KEY" ] || [ -z "$SPREADSHEET_ID" ]; then
+            echo "Missing core required secrets (OpenRouter, Composio, Spreadsheet ID)."
+            exit 1
+          fi
+          cat > .env << EOF
+          OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+          COMPOSIO_API_KEY=${COMPOSIO_API_KEY}
+          SPREADSHEET_ID=${SPREADSHEET_ID}
+          COMPOSIO_USER_ID=pg-test-0facdbc8-c065-4664-bda2-9c9e98444c7a
+          SENDER_EMAIL=saimim057@gmail.com
+          WEEKLY_REPORT_CC=hassan.zulfiqarbh@gmail.com
+          MAX_EMAILS_PER_RUN=10
+          SERPAPI_KEY_1=${SERPAPI_KEY_1}
+          SERPAPI_KEY_2=${SERPAPI_KEY_2}
+          SERPAPI_KEY_3=${SERPAPI_KEY_3}
+          HUNTER_API_KEY_1=${HUNTER_API_KEY_1}
+          HUNTER_API_KEY_2=${HUNTER_API_KEY_2}
+          HUNTER_API_KEY_3=${HUNTER_API_KEY_3}
+          SNOV_CLIENT_ID_1=${SNOV_CLIENT_ID_1}
+          SNOV_SECRET_1=${SNOV_SECRET_1}
+          SNOV_CLIENT_ID_2=${SNOV_CLIENT_ID_2}
+          SNOV_SECRET_2=${SNOV_SECRET_2}
+          SNOV_CLIENT_ID_3=${SNOV_CLIENT_ID_3}
+          SNOV_SECRET_3=${SNOV_SECRET_3}
+          EOF
+
+      - name: Verify CV is present
+        run: |
+          if [ ! -f "assets/Academic_CV.docx" ]; then
+            echo "CV missing at assets/Academic_CV.docx! Since GitHub Actions cannot read from your local Windows 'E:\' drive, you must upload your CV directly to the 'assets' folder in this repository."
+            exit 1
+          fi
+          ls -la assets/Academic_CV.docx
+
+      - name: Run outreach agent
+        run: python agent.py
+
+      - name: Save SQLite agent state for next run
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: state.db
+          key: prof-agent-state-${{ github.run_id }}
